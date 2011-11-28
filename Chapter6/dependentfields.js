@@ -1,33 +1,98 @@
-/* Basic styles */
+var DependentFields =
+{
+  init: function()
+  {
+    var forms = document.getElementsByTagName("form");
+    
+    for (var i = 0; i < forms.length; i++)
+    {
+      Core.addEventListener(forms[i], "change", DependentFields.changeListener);
+      Core.addEventListener(forms[i], "click", DependentFields.clickListener);
 
-body {
-  background-color: #2E2E33;
-  color: #FFF;
-  font: small Verdana, Arial, sans-serif;
-  padding: 0 10em;
-}
+      var fields = forms[i].getElementsByTagName("input");
+      var lastIndependentField = null;
+      forms[i]._dependents = [];
+      for (var j = 0; j < fields.length; j++)
+      {
+        if (!Core.hasClass(fields[j], "dependent"))
+        {
+          lastIndependentField = fields[j];
+        }
+        else
+        {
+          if (lastIndependentField)
+          {
+            forms[i]._dependents[forms[i]._dependents.length] = fields[j];
+            fields[j]._master = lastIndependentField;
+          }
+        }
+      }
+      DependentFields.updateDependents(forms[i]);
+    }
+  },
+  
+  disable: function(field)
+  {
+    field.disabled = true;
+    Core.addClass(field, "disabled");
+    Core.addClass(field.parentNode, "disabled");
+  },
+  
+  enable: function(field)
+  {
+    field.disabled = false;
+    Core.removeClass(field, "disabled");
+    Core.removeClass(field.parentNode, "disabled");
+  },
+  
+  updateDependents: function(form)
+  {
+    var dependents = form._dependents;
+    if (!dependents)
+    {
+      return;
+    }
+    
+    for (var i = 0; i < dependents.length; i++)
+    {
+      var disabled = true;
+      var master = dependents[i]._master;
+      
+      if (master.type == "text" || master.type == "password")
+      {
+        if (master.value.length > 0)
+        {
+          disabled = false;
+        }
+      }
+      else if (master.type == "checkbox" || master.type == "radio")
+      {
+        if (master.checked)
+        {
+          disabled = false;
+        }
+      }
 
-a:link {
-  color: #C0C0FF;
-}
+      if (disabled)
+      {
+        DependentFields.disable(dependents[i]);
+      }
+      else
+      {
+        DependentFields.enable(dependents[i]);
+      }
+    }    
+  },
+  
+  changeListener: function(event)
+  {
+    DependentFields.updateDependents(this);
+  },
+  
+  clickListener: function(event)
+  {
+    DependentFields.updateDependents(this);
+  }
+};
 
-a:visited {
-  color: #A0A0FF;
-}
-
-a:hover, a:focus, a:active {
-  color: #F0A000;
-}
-
-legend {
-  color: #FFF;
-}
-
-label.secondary {
-  display: block;
-  margin-left: 2em;
-}
-
-label.disabled {
-  color: #A0A0A0;
-}
+Core.start(DependentFields);
